@@ -1,5 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
+from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -75,9 +76,14 @@ class Mission:
         return cls(reference, cave_height, cave_depth)
 
     @classmethod
-    def from_csv(cls, file_name: str):
+    def from_csv(cls, file_name: str | Path):
         # You are required to implement this method
-        pass
+        data = pd.read_csv(file_name)
+        return cls(
+            reference=data["reference"].to_numpy(),
+            cave_height=data["cave_height"].to_numpy(),
+            cave_depth=data["cave_depth"].to_numpy(),
+        )
 
 
 class ClosedLoop:
@@ -98,8 +104,11 @@ class ClosedLoop:
         for t in range(T):
             positions[t] = self.plant.get_position()
             observation_t = self.plant.get_depth()
-            # Call your controller here
-            self.plant.transition(actions[t], disturbances[t])
+            
+            # The controller maps the current reference and depth observation to an action.
+            action_t = self.controller.control(mission.reference[t], observation_t)
+            actions[t] = action_t
+            self.plant.transition(action_t, disturbances[t])
 
         return Trajectory(positions)
         
